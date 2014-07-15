@@ -1,35 +1,39 @@
 package br.com.openedu.util;
 
+import java.util.Calendar;
+import java.util.Date;
 import java.util.UUID;
 import br.com.openedu.dao.SessionDAO;
-import br.com.openedu.model.Member;
 import br.com.openedu.model.Session;
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 public abstract class SessionValidation {
 	
 	private final SessionDAO sessionDAO;
-	private final Session session;
 	
 	public SessionValidation() {
-		session = new Session();
 		sessionDAO = new SessionDAO();
 	}
 	
-	public Member validateSession(String sessionId) throws MongoException{
+	public Session validateSession(String sessionId) throws MongoException{
 		
-		Member member = null;
+		Session session = null;
+		DBCursor cursor = sessionDAO.find(UUID.fromString(sessionId), new Date());
 		
-		session.setSessionId(UUID.fromString(sessionId));
-		DBCursor cursor = sessionDAO.find(session);
 		if(cursor.count() == 1){
-			member = new Member();
-			member.putAll((DBObject) cursor.next().get("member"));
+			
+			session = new Session();
+			session.putAll(cursor.next());
+			Calendar calendar = Calendar.getInstance();
+			calendar.add(Calendar.MINUTE, 60);
+			session.setExpirationDate(calendar.getTime());
+			sessionDAO.update(new BasicDBObject("_id", session.getObjectId("_id")), session);
+			
 		}
 		
-		return member;
+		return session;
 	}
 
 }

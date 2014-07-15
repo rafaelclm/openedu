@@ -1,5 +1,6 @@
 package br.com.openedu.model;
 
+import java.util.Date;
 import java.util.UUID;
 import com.mongodb.BasicDBObject;
 
@@ -13,6 +14,14 @@ public class Session extends BasicDBObject {
 	
 	public void setSessionId(UUID sessionId) {
 		super.put("sessionId", sessionId);
+	}
+	
+	public Date getExpirationDate() {
+		return getDate("expirationDate");
+	}
+	
+	public void setExpirationDate(Date expirationDate) {
+		super.put("expirationDate", expirationDate);
 	}
 	
 	public Member getMember() {

@@ -2,7 +2,6 @@ package br.com.openedu.rest;
 
 import java.io.InputStream;
 import java.util.Locale;
-import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
@@ -16,10 +15,10 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import br.com.openedu.dao.SessionDAO;
 import br.com.openedu.model.Codes;
 import br.com.openedu.model.Member;
 import br.com.openedu.model.Session;
+import br.com.openedu.util.SessionValidation;
 import com.dropbox.core.DbxAppInfo;
 import com.dropbox.core.DbxAuthFinish;
 import com.dropbox.core.DbxClient;
@@ -31,26 +30,20 @@ import com.dropbox.core.DbxWriteMode;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
 
 @Path("/storage/dropbox")
-public class DropBoxService {
+public class DropBoxService extends SessionValidation {
 
 	private final BasicDBObject result;
-	private final SessionDAO sessionDAO;
-	private final Session session;
-	private final Gson gson; 
-	
+	private final Gson gson;
+
 	@Context
 	private HttpServletRequest request;
 	@Context
 	private HttpServletResponse response;
-	
+
 	public DropBoxService() {
 		result = new BasicDBObject();
-		sessionDAO = new SessionDAO();
-		session = new Session();
 		gson = new GsonBuilder().disableHtmlEscaping().create();
 	}
 
@@ -96,19 +89,19 @@ public class DropBoxService {
 
 		try {
 
-			session.put("sessionId", UUID.fromString(sessionId));
-			DBCursor cursor = sessionDAO.find(session);
-			
-			if (cursor.count() == 1) {
-				Member member = memberFrom(cursor);
-				DbxClient dbxClient = new DbxClient(getRequestConfig(request), member.getDropBoxToken());
-				try {
-					dbxClient.uploadFile(path, DbxWriteMode.add(), request.getContentLength(), inputStream);
-				} finally {
-					inputStream.close();
-				}
-			} else {
+			Session session = validateSession(sessionId);
+
+			if (session == null) {
 				result.put("code", Codes.NOT_EXISTS_SESSION);
+				return responseUnauthorized();
+			}
+
+			Member member = session.getMember();
+			DbxClient dbxClient = new DbxClient(getRequestConfig(request), member.getDropBoxToken());
+			try {
+				dbxClient.uploadFile(path, DbxWriteMode.add(), request.getContentLength(), inputStream);
+			} finally {
+				inputStream.close();
 			}
 
 			return responseOk();
@@ -116,6 +109,10 @@ public class DropBoxService {
 		} catch (Exception exception) {
 			return exceptionGenericMessage(exception);
 		}
+	}
+
+	private Response responseUnauthorized() {
+		return Response.status(Status.UNAUTHORIZED).entity(gson.toJson(result)).build();
 	}
 
 	private Response exceptionGenericMessage(Exception exception) {
@@ -129,6 +126,14 @@ public class DropBoxService {
 	public Response getPath(@PathParam("sessionId") String sessionId, @QueryParam("path") String path) {
 
 		try {
+
+			Session session = validateSession(sessionId);
+
+			if (session == null) {
+				result.put("code", Codes.NOT_EXISTS_SESSION);
+				return responseUnauthorized();
+			}
+
 			if (path == null) {
 				path = "/";
 			} else {
@@ -139,22 +144,15 @@ public class DropBoxService {
 				}
 			}
 
-			session.put("sessionId", UUID.fromString(sessionId));
-			DBCursor cursor = sessionDAO.find(session);
-
-			if (cursor.count() == 1) {
-				Member member = memberFrom(cursor);
-				if (member.getDropBoxToken() == null) {
-					result.put("code", Codes.TOKEN_DROPBOX_NOT_FOUND);
-					throw new Exception("Token not found.");
-				}
-				DbxClient dbxClient = new DbxClient(getRequestConfig(request), member.getDropBoxToken());
-				DbxEntry.WithChildren listing;
-				listing = dbxClient.getMetadataWithChildren(path);
-				result.put("entity", listing);
-			} else {
-				result.put("code", Codes.NOT_EXISTS_SESSION);
+			Member member = session.getMember();
+			if (member.getDropBoxToken() == null) {
+				result.put("code", Codes.TOKEN_DROPBOX_NOT_FOUND);
+				throw new Exception("Token not found.");
 			}
+			DbxClient dbxClient = new DbxClient(getRequestConfig(request), member.getDropBoxToken());
+			DbxEntry.WithChildren listing;
+			listing = dbxClient.getMetadataWithChildren(path);
+			result.put("entity", listing);
 
 			return responseOk();
 
@@ -171,20 +169,22 @@ public class DropBoxService {
 
 		try {
 
-			session.put("sessionId", UUID.fromString(sessionId));
-			DBCursor cursor = sessionDAO.find(session);
+			Session session = validateSession(sessionId);
 
-			if (cursor.count() == 1) {
-				Member member = memberFrom(cursor);
-				if (member.getDropBoxToken() == null) {
-					result.put("code", Codes.TOKEN_DROPBOX_NOT_FOUND);
-					throw new Exception("Token not found.");
-				}
-				DbxClient dbxClient = new DbxClient(getRequestConfig(request), member.getDropBoxToken());
-				dbxClient.getFile(path, null, response.getOutputStream());
-			} else {
+			if (session == null) {
 				result.put("code", Codes.NOT_EXISTS_SESSION);
+				return responseUnauthorized();
 			}
+			
+			Member member = session.getMember();
+			
+			if (member.getDropBoxToken() == null) {
+				result.put("code", Codes.TOKEN_DROPBOX_NOT_FOUND);
+				throw new Exception("Token not found.");
+			}
+			
+			DbxClient dbxClient = new DbxClient(getRequestConfig(request), member.getDropBoxToken());
+			dbxClient.getFile(path, null, response.getOutputStream());
 
 			return responseOk();
 
@@ -192,12 +192,6 @@ public class DropBoxService {
 			return exceptionGenericMessage(exception);
 		}
 
-	}
-
-	private Member memberFrom(DBCursor cursor) {
-		Member member = new Member();
-		member.putAll((DBObject) cursor.next().get("member"));
-		return member;
 	}
 
 	private DbxRequestConfig getRequestConfig(HttpServletRequest request) {

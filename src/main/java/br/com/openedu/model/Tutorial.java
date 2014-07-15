@@ -72,11 +72,11 @@ public class Tutorial extends BasicDBObject {
 	}
 
 	public Member getAuthor() {
-		return (Member) get("member");
+		return (Member) get("author");
 	}
 	
 	public void setAuthor(Member member) {
-		super.put("member", member);
+		super.put("author", member);
 	}
 	
 	public boolean isPublished() {

@@ -26,12 +26,14 @@ import br.com.openedu.dao.TutorialDAO;
 import br.com.openedu.model.Codes;
 import br.com.openedu.model.Image;
 import br.com.openedu.model.Member;
+import br.com.openedu.model.Session;
 import br.com.openedu.model.Tutorial;
 import br.com.openedu.util.HttpConfig;
 import br.com.openedu.util.SessionValidation;
 import com.google.gson.Gson;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
+import com.mongodb.DBCursor;
 import com.mongodb.MongoException;
 import com.mongodb.gridfs.GridFS;
 import com.mongodb.gridfs.GridFSDBFile;
@@ -43,7 +45,7 @@ public class TutorialService extends SessionValidation {
 	private Gson gson;
 	private BasicDBObject result;
 	private HttpClient httpClient;
-	
+
 	@Context
 	HttpServletResponse response;
 
@@ -61,12 +63,15 @@ public class TutorialService extends SessionValidation {
 
 		Tutorial tutorial = tutorialFrom(content);
 
-		Member member = validateSession(tutorial.getSessionId());
+		Session session = validateSession(tutorial.getSessionId());
+		Member member = session.getMember();
 
 		if (member == null) {
 			result.put("code", Codes.NOT_EXISTS_SESSION);
 			return responseUnauthorized();
 		} else {
+			member.remove("password"); //no return this value
+			member.remove("dropBoxToken"); //no return this value
 			tutorial.setAuthor(member);
 		}
 
@@ -75,28 +80,7 @@ public class TutorialService extends SessionValidation {
 			if (validateInformationsToCreate(tutorial)) {
 
 				if (existsImagePathDropBox(tutorial)) {
-
-					HttpUriRequest request = new HttpGet(HttpConfig
-									.getBaseURI()
-									.concat("storage/dropbox/member")
-									.concat("/")
-									.concat(tutorial.getSessionId().concat("/").concat("file").concat("?path=")
-													.concat(tutorial.getImagePathDropBox())));
-
-					try {
-
-						HttpResponse response = httpClient.execute(request);
-						HttpEntity entity = response.getEntity();
-						InputStream inputStream = entity.getContent();
-						GridFS gridFS = tutorialDAO.getGridFS(member.getObjectId("_id").toHexString());
-						String filename = UUID.randomUUID().toString();
-						Image image = new Image(gridFS, inputStream, filename);
-						image.save();
-						tutorial.setImageId(filename);
-
-					} catch (IOException exception) {
-						exceptionGenericMessage(exception);
-					}
+					getImageDropBox(tutorial, member);
 				}
 
 				tutorial.setCreationDate(new Date());
@@ -114,16 +98,48 @@ public class TutorialService extends SessionValidation {
 		}
 	}
 
+	private void getImageDropBox(Tutorial tutorial, Member member) {
+
+		HttpUriRequest request = new HttpGet(HttpConfig
+						.getBaseURI()
+						.concat("storage/dropbox/member")
+						.concat("/")
+						.concat(tutorial.getSessionId().concat("/").concat("file").concat("?path=")
+										.concat(tutorial.getImagePathDropBox())));
+
+		try {
+
+			HttpResponse response = httpClient.execute(request);
+			HttpEntity entity = response.getEntity();
+			InputStream inputStream = entity.getContent();
+			String imageId = saveImage(member, inputStream);
+			tutorial.setImageId(imageId);
+
+		} catch (IOException exception) {
+			exceptionGenericMessage(exception);
+		}
+	}
+
+	private String saveImage(Member member, InputStream inputStream) {
+		GridFS gridFS = tutorialDAO.getGridFS(member.getObjectId("_id").toHexString());
+		String imageId = UUID.randomUUID().toString();
+		Image image = new Image(gridFS, inputStream, imageId);
+		image.save();
+		return imageId;
+	}
+
 	@GET
 	@Path("/session/{sessionId}/image/{imageId}")
 	public Response getImage(@PathParam("imageId") String imageId, @PathParam("sessionId") String sessionId) {
 
-		Member member = validateSession(sessionId);
+		Session session = validateSession(sessionId);
 
-		if (member == null) {
+		if (session == null) {
 			result.put("code", Codes.NOT_EXISTS_SESSION);
 			return responseUnauthorized();
 		}
+		
+		Member member = session.getMember();
 
 		try {
 
@@ -131,15 +147,59 @@ public class TutorialService extends SessionValidation {
 			GridFSDBFile imageForOutput = gridFS.findOne(imageId);
 
 			final InputStream inputStream = imageForOutput.getInputStream();
-			
-			response.getOutputStream().write(IOUtils.toByteArray(inputStream));;
-
+			response.getOutputStream().write(IOUtils.toByteArray(inputStream));
+			;
 			return responseOk();
 
 		} catch (MongoException exception) {
 			return exceptionMessage(exception);
 		} catch (IOException exception) {
 			return exceptionGenericMessage(exception);
+		}
+
+	}
+
+	@POST
+	@Path("/session/{sessionId}/image")
+	public Response setImage(@PathParam("sessionId") String sessionId, InputStream inputStream) {
+
+		Session session = validateSession(sessionId);
+
+		if (session == null) {
+			result.put("code", Codes.NOT_EXISTS_SESSION);
+			return responseUnauthorized();
+		}
+
+		Member member = session.getMember();
+		
+		try {
+			String imageId = saveImage(member, inputStream);
+			result.put("imageId", imageId);
+			return responseOk();
+		} catch (MongoException exception) {
+			return exceptionMessage(exception);
+		} catch (Exception exception) {
+			return exceptionGenericMessage(exception);
+		}
+	}
+	
+	@GET
+	@Path("/session/{sessionId}/skip/{skip}/limit/{limit}")
+	public Response getTutorials(@PathParam("sessionId") String sessionId, @PathParam("skip") int skip, @PathParam("limit") int limit){
+		
+		Session session = validateSession(sessionId);
+
+		if (session == null) {
+			result.put("code", Codes.NOT_EXISTS_SESSION);
+			return responseUnauthorized();
+		}
+				
+		try{
+			DBCursor cursor = tutorialDAO.find().skip(skip).limit(limit);
+			result.put("entity", cursor.toArray());
+			return responseOk();
+		}catch(MongoException exception){
+			return exceptionMessage(exception);
 		}
 
 	}

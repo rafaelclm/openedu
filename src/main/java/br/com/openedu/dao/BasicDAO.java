@@ -49,6 +49,14 @@ public abstract class BasicDAO {
 			throw new MongoException(exception.getMessage());
 		}
 	}
+	
+	public DBCursor find() {
+		try {
+			return collection.find();
+		} catch (Exception exception) {
+			throw new MongoException(exception.getMessage());
+		}
+	}
 
 	public DBCollection getCollection() {
 		return collection;

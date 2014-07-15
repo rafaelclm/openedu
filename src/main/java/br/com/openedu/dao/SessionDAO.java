@@ -1,5 +1,7 @@
 package br.com.openedu.dao;
 
+import java.util.Date;
+import java.util.UUID;
 import br.com.openedu.model.Session;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCursor;
@@ -16,8 +18,8 @@ public class SessionDAO extends BasicDAO {
 		super.insert(session);
 	}
 	
-	public DBCursor find(Session session) throws MongoException {
-		return super.find(session);
+	public DBCursor find(UUID sessionId, Date expirationDate) throws MongoException {
+		return super.find(new BasicDBObject("sessionId", sessionId).append("expirationDate", new BasicDBObject("$gte", expirationDate)));
 	}
 	
 	public void updateBySessionId(Session session) throws MongoException{

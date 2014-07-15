@@ -1,5 +1,6 @@
 package br.com.openedu.rest;
 
+import java.util.Calendar;
 import java.util.UUID;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -16,6 +17,7 @@ import br.com.openedu.dao.SessionDAO;
 import br.com.openedu.model.Codes;
 import br.com.openedu.model.Member;
 import br.com.openedu.model.Session;
+import br.com.openedu.util.SessionValidation;
 import com.google.gson.Gson;
 import com.mongodb.BasicDBList;
 import com.mongodb.BasicDBObject;
@@ -24,7 +26,7 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 
 @Path("member")
-public class MemberService {
+public class MemberService extends SessionValidation {
 
 	private final Gson gson;
 	private final MemberDAO memberDAO;
@@ -83,13 +85,18 @@ public class MemberService {
 		Member member = memberFrom(content);
 
 		try {
+
 			DBCursor cursor = memberDAO.find(member);
 			if (existsOneObjectIn(cursor)) {
 				member.putAll(cursor.next());
 				result.put("code", Codes.SESSION_CREATED);
 				session.setSessionId(UUID.randomUUID());
-				member.setPassword(null);
+				member.remove("password");
+				member.remove("dropBoxToken");
 				session.setMember(member);
+				Calendar calendar = Calendar.getInstance();
+				calendar.add(Calendar.MINUTE, 60);
+				session.setExpirationDate(calendar.getTime());
 				sessionDAO.create(session);
 				result.put("entity", session);
 				return responseOk();
@@ -108,19 +115,19 @@ public class MemberService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response me(@PathParam("sessionId") String sessionId) {
 
-		session.setSessionId(UUID.fromString(sessionId));
-
 		try {
-			DBCursor cursor = sessionDAO.find(session);
-			if (existsOneObjectIn(cursor)) {
-				session.putAll(cursor.next());
-				result.put("code", Codes.EXISTS_SESSION);
-				result.put("entity", session);
-				return responseOk();
-			} else {
+
+			Session session = validateSession(sessionId);
+
+			if (session == null) {
 				result.put("code", Codes.NOT_EXISTS_SESSION);
-				return responseOk();
+				return responseUnauthorized();
 			}
+			
+			result.put("code", Codes.EXISTS_SESSION);
+			result.put("entity", session);
+			return responseOk();
+
 		} catch (MongoException exception) {
 			return exceptionMessage(exception);
 		}
@@ -132,39 +139,36 @@ public class MemberService {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response update(@PathParam("sessionId") String sessionId, String contentForUpdate) {
 
-		session.setSessionId(UUID.fromString(sessionId));
+		Session session = validateSession(sessionId);
+
+		if (session == null) {
+			result.put("code", Codes.NOT_EXISTS_SESSION);
+			return responseUnauthorized();
+		}
 
 		try {
 
-			DBCursor cursor = sessionDAO.find(session);
+			Member member = memberFrom(contentForUpdate);
+			DBCursor cursor = memberDAO.find(byEmail(member));
+			removeNotUpdateableFields(member);
 
 			if (existsOneObjectIn(cursor)) {
 
-				Member member = memberFrom(contentForUpdate);
-				cursor = memberDAO.find(byEmail(member));
-				removeNotUpdateableFields(member);
-
-				if (existsOneObjectIn(cursor)) {
-
-					DBObject data = cursor.next();
-					data.putAll(member.toMap());
-					member.putAll(data);
-					memberDAO.updateByEmail(member);
-					session.setMember(member);
-					sessionDAO.updateBySessionId(session);
-					result.put("code", Codes.MEMBER_UPDATED);
-					result.put("entity", member);
-					return responseOk();
-
-				} else {
-					result.put("code", Codes.NOT_EXISTS_MEMBER);
-					return responseOk();
-				}
+				DBObject data = cursor.next();
+				data.putAll(member.toMap());
+				member.putAll(data);
+				memberDAO.updateByEmail(member);
+				session.setMember(member);
+				sessionDAO.updateBySessionId(session);
+				result.put("code", Codes.MEMBER_UPDATED);
+				result.put("entity", member);
+				return responseOk();
 
 			} else {
-				result.put("code", Codes.NOT_EXISTS_SESSION);
+				result.put("code", Codes.NOT_EXISTS_MEMBER);
 				return responseOk();
 			}
+
 		} catch (MongoException exception) {
 			return exceptionMessage(exception);
 		}
