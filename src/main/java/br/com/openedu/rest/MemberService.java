@@ -1,6 +1,9 @@
 package br.com.openedu.rest;
 
 import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.TimeZone;
 import java.util.UUID;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -61,6 +64,8 @@ public class MemberService extends SessionValidation {
 		try {
 
 			if (validateInformationsToCreate(member)) {
+				Date now = new GregorianCalendar(TimeZone.getTimeZone("GMT")).getTime();
+				member.setSince(now);
 				memberDAO.create(member);
 				result.put("code", Codes.SUCCESSFULL_CREATED);
 				member.setPassword(null);

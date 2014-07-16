@@ -3,6 +3,8 @@ package br.com.openedu.rest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.TimeZone;
 import java.util.UUID;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
@@ -83,8 +85,9 @@ public class TutorialService extends SessionValidation {
 					getImageDropBox(tutorial, member);
 				}
 
-				tutorial.setCreationDate(new Date());
-				tutorial.setLastUpdate(new Date());
+				Date now = new GregorianCalendar(TimeZone.getTimeZone("GMT")).getTime();
+				tutorial.setCreationDate(now);
+				tutorial.setLastUpdate(now);
 				tutorialDAO.create(tutorial);
 				result.put("code", Codes.SUCCESSFULL_CREATED);
 				result.put("entity", tutorial);
