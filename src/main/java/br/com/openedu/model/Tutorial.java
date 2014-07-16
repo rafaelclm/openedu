@@ -1,6 +1,7 @@
 package br.com.openedu.model;
 
 import java.util.Date;
+import org.bson.types.ObjectId;
 import com.mongodb.BasicDBObject;
 
 public class Tutorial extends BasicDBObject {
@@ -71,12 +72,12 @@ public class Tutorial extends BasicDBObject {
 		super.put("imagePathDropBox", imagePathDropBox);
 	}
 
-	public Member getAuthor() {
-		return (Member) get("author");
+	public ObjectId getAuthor() {
+		return (ObjectId) get("author");
 	}
 	
-	public void setAuthor(Member member) {
-		super.put("author", member);
+	public void setAuthor(ObjectId memberId) {
+		super.put("author", memberId);
 	}
 	
 	public boolean isPublished() {

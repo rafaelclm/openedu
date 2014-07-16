@@ -72,9 +72,7 @@ public class TutorialService extends SessionValidation {
 			result.put("code", Codes.NOT_EXISTS_SESSION);
 			return responseUnauthorized();
 		} else {
-			member.remove("password"); //no return this value
-			member.remove("dropBoxToken"); //no return this value
-			tutorial.setAuthor(member);
+			tutorial.setAuthor(member.getObjectId("_id"));
 		}
 
 		try {
@@ -141,7 +139,7 @@ public class TutorialService extends SessionValidation {
 			result.put("code", Codes.NOT_EXISTS_SESSION);
 			return responseUnauthorized();
 		}
-		
+
 		Member member = session.getMember();
 
 		try {
@@ -174,7 +172,7 @@ public class TutorialService extends SessionValidation {
 		}
 
 		Member member = session.getMember();
-		
+
 		try {
 			String imageId = saveImage(member, inputStream);
 			result.put("imageId", imageId);
@@ -185,23 +183,51 @@ public class TutorialService extends SessionValidation {
 			return exceptionGenericMessage(exception);
 		}
 	}
-	
+
 	@GET
 	@Path("/session/{sessionId}/skip/{skip}/limit/{limit}")
-	public Response getTutorials(@PathParam("sessionId") String sessionId, @PathParam("skip") int skip, @PathParam("limit") int limit){
-		
+	public Response getTutorials(@PathParam("sessionId") String sessionId, @PathParam("skip") int skip,
+					@PathParam("limit") int limit) {
+
 		Session session = validateSession(sessionId);
 
 		if (session == null) {
 			result.put("code", Codes.NOT_EXISTS_SESSION);
 			return responseUnauthorized();
 		}
-				
-		try{
-			DBCursor cursor = tutorialDAO.find().skip(skip).limit(limit);
+
+		try {
+
+			DBCursor cursor = tutorialDAO.find(skip, limit);
 			result.put("entity", cursor.toArray());
 			return responseOk();
-		}catch(MongoException exception){
+
+		} catch (MongoException exception) {
+			return exceptionMessage(exception);
+		}
+
+	}
+
+	@GET
+	@Path("/member/session/{sessionId}/skip/{skip}/limit/{limit}")
+	public Response getTutorialsByMember(@PathParam("sessionId") String sessionId, @PathParam("skip") int skip,
+					@PathParam("limit") int limit) {
+
+		Session session = validateSession(sessionId);
+
+		if (session == null) {
+			result.put("code", Codes.NOT_EXISTS_SESSION);
+			return responseUnauthorized();
+		}
+
+		try {
+
+			Member member = session.getMember();
+			DBCursor cursor = tutorialDAO.find(member.getObjectId("_id"), skip, limit);
+			result.put("entity", cursor.toArray());
+			return responseOk();
+
+		} catch (MongoException exception) {
 			return exceptionMessage(exception);
 		}
 
