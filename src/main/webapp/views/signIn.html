@@ -1,0 +1,29 @@
+<div id="signIn-wrap">
+    <div id="signIn-panel">
+        <input id="signIn-email" ng-model="applicationController.memberSignIn.email" type="text" class="form-control input-sm" placeholder="E-mail">
+        <input id="signIn-password" ng-model="applicationController.memberSignIn.password" type="password" class="form-control input-sm" placeholder="Senha">
+        <button id="signIn-button-login" class="btn btn-info btn-sm" ng-click="applicationController.signIn()">Entrar</button>
+        <button id="signIn-button-cancel" class="btn btn-info btn-sm" ng-click="homeController.cancel()">Cancelar</button>
+        <style>
+            #signIn-panel{
+                position: fixed; top: 50%; left: 50%; width: 400px; height: 200px; 
+                margin-top: -100px; margin-left: -200px;
+            }
+
+            #signIn-wrap{
+                position: fixed; top: 0; left: 0;  right: 0; bottom: 0; 
+                background-color: rgba(255, 255, 255, 0.7);
+            }
+
+            input{margin-bottom: 10px;}
+
+            @media screen and (max-width: 480px) {
+                #signIn-panel{ 
+                    position: relative; top: 100px; left: 0; width: 95%; height: 200px; margin: 0 auto;
+                } 
+            }
+
+
+        </style>
+    </div>
+</div>

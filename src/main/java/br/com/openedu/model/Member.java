@@ -2,6 +2,7 @@ package br.com.openedu.model;
 
 import java.util.Date;
 import com.mongodb.BasicDBObject;
+import com.mongodb.DBObject;
 
 public class Member extends BasicDBObject {
 
@@ -27,12 +28,12 @@ public class Member extends BasicDBObject {
 		super.put("gender", gender);
 	}
 
-	public int getAge() {
-		return getInt("age");
+	public Date getBirthDate() {
+		return getDate("birthDate");
 	}
 
-	public void setAge(int age) {
-		super.put("age", age);
+	public void setBirthDate(Date birthDate) {
+		super.put("birthDate", birthDate);
 	}
 
 	public Role getRole() {
@@ -78,5 +79,40 @@ public class Member extends BasicDBObject {
 	public void setDropBoxToken(String dropBoxToken) {
 		super.put("dropBoxToken", dropBoxToken);
 	}
+        
+        public boolean getEnabled(){
+            return getBoolean("enabled");
+        }
+        
+        public void setEnabled(boolean enabled){
+            super.put("enabled", enabled);
+        }
+        
+        public String getAboutMe(){
+            return getString("aboutMe");
+        }
+        
+        public void setAboutMe(String aboutMe){
+            super.put("aboutMe", aboutMe);
+        }
+        
+        public Location getLocation(){
+            Location location = new Location();
+            location.putAll((DBObject) get("location"));
+            return location;
+        }
+        
+        public void setLocation(Location location){
+            super.put("location", location);
+        }
+        
+        public String getImage(){
+            return getString("image");
+        }
+        
+        public void setImage(String image){
+            super.put("image", image);
+        }
 
 }
+

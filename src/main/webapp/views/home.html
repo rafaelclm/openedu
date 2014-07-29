@@ -1,0 +1,22 @@
+<div ng-controller="HomeController as homeController">
+    <div id="headerpage" class="panel panel-default">
+        <div class="panel-body">
+            <a class="btn btn-primary btn-sm" ng-click="homeController.doLogin()">Entrar</a>
+            <a class="btn btn-primary btn-sm" ng-click="homeController.doSignUp()">Criar uma conta</a>
+        </div>
+    </div>
+    <div id="bodypage">
+        <ng-include src="homeController.template"></ng-include>
+    </div>
+    <style>
+
+        #formSignIn{
+
+        }
+
+        #headerpage{ position: fixed; top: 0; left: -2px; right: -2px; background-color: whitesmoke; }
+
+        #bodypage{ position: fixed; top: 0px; left: 0; right: 0;}
+
+    </style>
+</div>

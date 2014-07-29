@@ -1,5 +1,6 @@
 package br.com.openedu.dao;
 
+import java.util.Date;
 import org.bson.types.ObjectId;
 import br.com.openedu.model.Tutorial;
 import com.mongodb.BasicDBObject;
@@ -20,8 +21,18 @@ public class TutorialDAO extends BasicDAO{
 		return super.find().skip(skip).limit(limit);
 	}
 	
-	public DBCursor find(ObjectId author, int skip, int limit){
+	public DBCursor find(ObjectId author, int skip, int limit) throws MongoException{
 		BasicDBObject query = new BasicDBObject("author", author);
 		return super.find(query).skip(skip).limit(limit);
+	}
+	
+	public DBCursor find(Date startdate, Date enddate) throws MongoException{
+		BasicDBObject query = new BasicDBObject("lastUpdate", new BasicDBObject("$gte", startdate).append("$lte", enddate));
+		return super.find(query);
+	}
+	
+	public DBCursor find(String title) throws MongoException{
+		BasicDBObject query = new BasicDBObject("title", java.util.regex.Pattern.compile(title));
+		return super.find(query);
 	}
 }

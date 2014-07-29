@@ -1,0 +1,35 @@
+<div id="signUp-wrap">
+    <form>
+        <div id="signUp-panel">
+            <input id="signUp-name" ng-model="applicationController.memberSignUp.name" type="text" class="form-control " placeholder="Nome Completo">
+            <input id="signUp-email" ng-model="applicationController.memberSignUp.email" type="email" class="form-control " placeholder="Email">
+            <input id="signUp-password" ng-model="applicationController.memberSignUp.password" type="password" class="form-control " placeholder="Senha">
+            <input id="signUp-email" ng-model="applicationController.memberSignUp.tag" type="text" class="form-control " placeholder="Apelido">
+            <span class="label label-default">Data de Nascimento</span>
+            <input type="date" ng-model="applicationController.memberSignUp.birthDate" class="form-control"/>
+            <br/>
+            <button id="signUp-button-login" class="btn btn-info btn-sm" ng-click="applicationController.signUp()">Confirmar</button>
+            <button id="signUp-button-cancel" class="btn btn-info btn-sm" ng-click="homeController.cancel()">Cancelar</button>
+        </div>
+    </form>
+    <style>
+        #signUp-panel{
+            position: fixed; top: 50%; left: 50%; width: 400px; height: 330px; 
+            margin-top: -165px; margin-left: -200px;
+        }
+
+        #signUp-wrap{
+            position: fixed; top: 0; left: 0;  right: 0; bottom: 0; 
+            background-color: rgba(255, 255, 255, 0.8); overflow: auto;
+        }
+
+        input{margin-bottom: 10px;}
+
+        @media screen and (max-width: 480px) {
+            #signUp-panel{ 
+                position: relative; top: 70px; left: 0; width: 95%; height: 330px; margin: 0 auto;
+            } 
+        } 
+
+    </style>
+</div>

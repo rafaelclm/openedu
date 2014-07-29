@@ -1,0 +1,37 @@
+<div ng-controller="UserAreaController as userAreaController">
+    <div ng-controller="MemberController as memberController">
+        <div id="wrap">
+            <div id="header" class="panel panel-default">
+                <div class="panel-body">
+                    <a href="" ng-click="userAreaController.setTemplate(Templates.USER_AREA_HOME_CONTENT)"><i class="icon32-home2"></i></a>
+                    <a href="" id="btn-user" ><i class="icon32-profile" ng-click="userAreaController.setTemplate(Templates.USER_AREA_PROFILE)"></i></a>
+                </div>
+            </div>
+            <div id="content">
+                <div ng-include="userAreaController.template"></div>
+            </div>
+        </div>
+
+        <style type="text/css">
+
+            #header{
+                position: fixed;
+                top: 0; right: 0; left: 0; z-index: 1000;
+                background-color: whitesmoke;
+
+            }
+
+            #btn-user{
+                float: right;
+            }
+
+            #content{
+                padding-top: 10px;
+            }
+
+            #btn-exit{
+                float: right;
+            }
+        </style>
+    </div>
+</div>
