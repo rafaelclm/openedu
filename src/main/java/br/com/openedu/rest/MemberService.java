@@ -154,7 +154,8 @@ public class MemberService extends SessionValidation {
 
             Member member = new Member();
             member.putAll(memberDAO.find(byEmail(_session.getMember())).next());
-
+            member.remove("password");
+                        
             result.put("code", Codes.EXISTS_SESSION);
             result.put("entity", member);
             return responseOk();
@@ -296,6 +297,7 @@ public class MemberService extends SessionValidation {
     }
 
     private void removeNotUpdateableFields(Member member) {
+        member.remove("_id");
         member.remove("tag");
         member.remove("email");
         member.remove("role");
